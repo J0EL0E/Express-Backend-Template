@@ -5,10 +5,19 @@ const event = new Schema({
         type: String,
         required: true
     }, 
-    userId: {
+    senderId: {
         type: String,
         required: true
     }, 
+    senderName: {
+        type: String,
+        required: true
+    },
+    senderEmail: {
+        type: [String],
+        required: true,
+        set: val => Array.isArray(val) ? val : [val]
+    },
     date: {
         type: String,
         required: true
@@ -17,11 +26,11 @@ const event = new Schema({
         type: String,
         required: true 
     }, 
-    clientName: {
+    receiverName: {
         type: String,
         required: true
     }, 
-    clientEmail: {
+    receiverEmail: {
         type: String,
         required: true
     }, 
