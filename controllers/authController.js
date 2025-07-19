@@ -7,15 +7,23 @@ import "dotenv/config";
 export const RegisterController = async (req, res) => {
     try{
         const {name, email, password} = req.body;
-        console.log(email, password);
-    
+
         if(!email && !password){
             return res.status(400).json({
-                status: "failed",
+                status: "error",
                 message: "Email and password are required."
             })
         }
-    
+        
+        const checkIfEmailIsExisting = User.find({email: email});
+        if(checkIfEmailIsExisting.length > 0){
+            return res.status(400).json({
+                status: "error",
+                message: "The email that the user has inputted is already used."
+            })
+
+        }
+
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const newUser = new User({
@@ -34,8 +42,9 @@ export const RegisterController = async (req, res) => {
     } catch (error) {
         console.error("Registration failed:", error);
         return res.status(500).json({
-            status: "failed",
-            message: "Failed to create a new user."
+            status: "error",
+            message: "Failed to create a new user.",
+            error: error
         })
     }
 }
@@ -43,11 +52,10 @@ export const RegisterController = async (req, res) => {
 export const LoginController = async (req, res) => {
       try{
         const {email, password} = req.body;
-        // console.log(email, password);
     
         if(!email && !password){
             return res.status(400).json({
-                status: "failed",
+                status: "error",
                 message: "Email and password are required."
             })
         }
@@ -69,7 +77,7 @@ export const LoginController = async (req, res) => {
             });
         } else {
             res.status(400).json({
-                status: "failed",
+                status: "error",
                 message: "Password doesn't matched."
             });
         }
@@ -77,8 +85,43 @@ export const LoginController = async (req, res) => {
     } catch (error) {
         console.error("Registration failed");
         return res.status(500).json({
-            status: "failed",
-            message: "Failed to create a new user."
+            status: "error",
+            message: "Failed to create a new user.",
+            error: error
         })
+    }
+}
+
+export const ResetPassword = async () => {
+    try {
+        const {email, new_password} = req.body;
+    
+        //Encrypting the newPassword
+
+        if(!email || !new_password){
+            return res.status(400).json({
+                status  : "error",
+                message: "Email and password is required."
+            });
+        }
+    
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(new_password, saltRounds);
+        const userToUpdate = await User.findOneAndUpdate({email: email}, {password: hashedPassword});
+
+        if(userToUpdate){
+            return res.status(200).json({
+                status: "success",
+                message: "The password has been reset successfully"
+            });
+        }
+
+    } catch (error) {
+        console.error("Unable to reset the password:", error);
+        return res.status(500).json({
+            status: "error",
+            message: "Unable to reset the password",
+            error: error
+        }) 
     }
 }
