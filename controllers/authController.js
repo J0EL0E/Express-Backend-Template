@@ -89,7 +89,7 @@ export const LoginController = async (req, res) => {
         }
 
     } catch (error) {
-        console.error("Registration failed");
+        console.error("Login failed", error);
         return res.status(500).json({
             status: "error",
             message: "Failed to create a new user.",
@@ -135,16 +135,14 @@ export const ResetPassword = async (req, res) => {
 }
 
 export const verifyResetToken = async (req, res) => {
-  const { token } = req.params;
-  const user = await User.findOne({
-    resetToken: token,
-    resetTokenExpires: { $gt: new Date() } // Check expiry
-  });
-
-  if (!user) {
-    return res.status(400).send('Invalid or expired token');
-  }
-
+    //get token parameter from the url 
+    const {token} = req.params;
+    //check
+    if(!token){
+        return res.status(400).send('reset password token is required');      
+    } 
+        jwt.verify(token, process.env.JWT_SECRET_KEY);
+    
   // Render password reset form (or send front-end signal)
 //   res.send('Reset form goes here');
 }

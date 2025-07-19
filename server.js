@@ -4,7 +4,6 @@ import {
     authRouter,
     eventScheduleRouter,
 } from "./routes/index.js";
-// import authRouter from "./routes/authRoutes.js";
 
 
 const app = express();
@@ -12,10 +11,10 @@ const PORT = 3000;
 
 await connectToMongoDB();
 
+app.use(express.json());
 app.use(express.urlencoded({
     extended: true
 }));
-app.use(express.json());
 
 app.get("/", (req, res) => {
     res.send("Welcome to AI scheduler API");

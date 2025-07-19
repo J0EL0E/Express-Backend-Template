@@ -1,10 +1,11 @@
 import eventSchedule from "../models/eventModel.js";
 import User from "../models/userModel.js";
 import { v4 as uuidv4 } from 'uuid';
+import { cancelEventInvitationEmailNotification, eventInvitationEmailNotification, updateEventInvitationEmailNotification } from "../templates/eventEmailNotification.js";
 
 export const createEventSchedule =  async (req, res) => {
     try{
-        const { senderName, senderEmail, date, time, receiverEmail, receiverName, reason} = req.body;
+        const { senderName, senderEmail, date, time, receiverEmail, receiverName, title, description, location, link} = req.body;
         const user = await User.find({ email: senderEmail, name: senderName});
         if(!user){
             return res.status(404).json({
@@ -24,10 +25,17 @@ export const createEventSchedule =  async (req, res) => {
             time: time,
             receiverName: receiverName,
             receiverEmail: receiverEmail,
-            reason: reason,
+            event_title: title,
+            event_description: description,
+            event_location: location,
+            event_link: link, 
             status: "scheduled" 
         });
+        console.log(newEvent);
         const isSaved = await newEvent.save();
+        //created email service that notify the receivers of the new event
+        await eventInvitationEmailNotification(receiverEmail, receiverName, eventID);
+
         if (isSaved){
             res.status(201).json({
                 status: "success",
@@ -127,7 +135,7 @@ export const updateEventSchedule = async(req, res) => {
                 message: "The event ID is required."
             })
         }
-        const {receiverEmail, receiverName, date, time, reason, status} = req.body;
+        const {receiverEmail, receiverName, date, time, title, description, location, link, status} = req.body;
 
     
         const eventToBeEdited = await eventSchedule.findOneAndUpdate({eventId: eventId}, {
@@ -135,9 +143,14 @@ export const updateEventSchedule = async(req, res) => {
             receiverName: receiverName,
             date: date,
             time: time,
-            reason: reason,
+            event_title: title,
+            event_description: description,
+            event_location: location,
+            event_link: link, 
             status: status ? status : "scheduled"
         })
+
+        await updateEventInvitationEmailNotification(receiverEmail, receiverName, eventId);
 
         if(eventToBeEdited) {
              res.status(200).json({
@@ -169,9 +182,14 @@ export const cancelEventSchedule = async (req, res) => {
             })
         }
 
+        const event = await eventSchedule.find({eventId: eventId});
+        const {receiverEmail, receiverName} = event[0];
+
         await eventSchedule.findOneAndUpdate({eventId: eventId}, {
-           status: canceled
+           status: "cancelled"
         })
+
+        await cancelEventInvitationEmailNotification(receiverEmail, receiverName, eventId);
 
         return res.status(200).json({
             status: "success",
@@ -195,7 +213,7 @@ export const deleteEventSchedule = async (req, res) => {
 
         if(!eventId){
             return  res.status(400).json({
-                 status: "error",
+                status: "error",
                 message: "The event ID is required."
             })
         }
