@@ -3,12 +3,15 @@ import User from '../models/userModel.js';
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from 'uuid';
 import "dotenv/config";
+import { registationEmailNotification } from '../templates/userEmailNotifications.js';
 
 export const RegisterController = async (req, res) => {
     try{
+        console.log(req.body)
         const {name, email, password} = req.body;
 
-        if(!email && !password){
+        console.log(name,email, password);
+        if(!email || !password ){
             return res.status(400).json({
                 status: "error",
                 message: "Email and password are required."
@@ -34,17 +37,20 @@ export const RegisterController = async (req, res) => {
             availability: true
         })
         newUser.save();
+
+        await registationEmailNotification(email, name);
+
         res.status(201).json({
             status: "success",
             message: "User is created successfully."
         })
 
     } catch (error) {
-        console.error("Registration failed:", error);
+        // console.error("Registration failed:", error);
         return res.status(500).json({
             status: "error",
             message: "Failed to create a new user.",
-            error: error
+            // error: error
         })
     }
 }
@@ -92,7 +98,7 @@ export const LoginController = async (req, res) => {
     }
 }
 
-export const ResetPassword = async () => {
+export const ResetPassword = async (req, res) => {
     try {
         const {email, new_password} = req.body;
     
@@ -114,6 +120,8 @@ export const ResetPassword = async () => {
                 status: "success",
                 message: "The password has been reset successfully"
             });
+        } else {
+            return res.status(400).send('Invalid or expired reset token');
         }
 
     } catch (error) {
@@ -124,4 +132,19 @@ export const ResetPassword = async () => {
             error: error
         }) 
     }
+}
+
+export const verifyResetToken = async (req, res) => {
+  const { token } = req.params;
+  const user = await User.findOne({
+    resetToken: token,
+    resetTokenExpires: { $gt: new Date() } // Check expiry
+  });
+
+  if (!user) {
+    return res.status(400).send('Invalid or expired token');
+  }
+
+  // Render password reset form (or send front-end signal)
+//   res.send('Reset form goes here');
 }
