@@ -5,7 +5,11 @@ const user = new Schema({
         type: String,
         required: true,
     },
-    name: {
+    firstName: {
+        type: String,
+        required: true
+    },
+    lastName: {
         type: String,
         required: true
     },
@@ -17,6 +21,9 @@ const user = new Schema({
     password: {
         type: String,
         required: true,
+    },
+    agreeToTerms: {
+        type: String
     },
     availability: {
         type: Boolean,

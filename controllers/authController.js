@@ -4,13 +4,15 @@ import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from 'uuid';
 import "dotenv/config";
 import { registationEmailNotification } from '../templates/userEmailNotifications.js';
+import { generateAccessToken, generateRefreshToken } from '../utils/generateToken.js';
+import refreshTokenModel from '../models/tokenModel.js';
 
 export const RegisterController = async (req, res) => {
     try{
         console.log(req.body)
-        const {name, email, password} = req.body;
+        const {firstName, lastName, email, password, agreeToTerms} = req.body;
 
-        console.log(name,email, password);
+        console.log(firstName, lastName, email, password);
         if(!email || !password ){
             return res.status(400).json({
                 status: "error",
@@ -26,18 +28,20 @@ export const RegisterController = async (req, res) => {
             })
 
         }
-
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         const newUser = new User({
             userId: uuidv4(),
-            name: name,
+            firstName: firstName,
+            lastName: lastName,
             email: email,
             password: hashedPassword,
+            agreeToTerms: agreeToTerms,
             availability: true
         })
         newUser.save();
 
+        const name = `${firstName} ${lastName}`
         await registationEmailNotification(email, name);
 
         res.status(201).json({
@@ -68,18 +72,24 @@ export const LoginController = async (req, res) => {
 
         const existingUser = await User.findOne({email: email});
         const storedHashedPassword = existingUser.password;
-
         const isPasswordMatched = await bcrypt.compare(password, storedHashedPassword);
 
         if(isPasswordMatched){
-            const token = jwt.sign({
-                email: email,
-                password: password
-            }, process.env.JWT_SECRET_KEY,  { expiresIn: '3h' });
+           const userCredentials = {email, storedHashedPassword}
+           const accessToken = generateAccessToken(userCredentials);
+           const refreshToken = generateRefreshToken(userCredentials);
+           
+            res.cookie('refreshToken', refreshToken, {
+              httpOnly: true,
+              path: '/api/v1/refresh',
+              sameSite: 'Lax',
+            });
+        
             return res.status(201).json({
                 status: "success",
                 message: "User is retrieved successfully.",
-                accessToken: token
+                accessToken: accessToken,
+                refreshToken: refreshToken
             });
         } else {
             res.status(400).json({
@@ -146,3 +156,35 @@ export const verifyResetToken = async (req, res) => {
   // Render password reset form (or send front-end signal)
 //   res.send('Reset form goes here');
 }
+
+export const refreshTokenController =  async (req, res) => {
+  const token = req.cookies.refreshToken;
+  const doesTokenExist = await refreshTokenModel.findOne({token: token})
+  if (!token || !doesTokenExist) return res.sendStatus(403);
+
+  jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, async (err, user) => {
+    if (err) return res.sendStatus(403);
+     
+    const accessToken = generateAccessToken({ email: user.email, });
+    res.json({ accessToken });
+  });
+};
+
+export const logOutController = (req, res) => {
+  const token = req.cookies.refreshToken;
+  refreshTokenModel.findOneAndDelete({token: token});
+  res.clearCookie('refreshToken', { path: '/refresh' });
+  res.sendStatus(204);
+};
+
+export const isUserAuthorized = (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, process.env.JWT_SECRET_KEY, (err, user) => {
+    if (err) return res.sendStatus(403);
+    res.json({ message: `Welcome, ${user.username}!` });
+  });
+};
+

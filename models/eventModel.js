@@ -27,17 +27,29 @@ const event = new Schema({
         required: true 
     }, 
     receiverName: {
-        type: String,
+        type: [String],
         required: true
     }, 
     receiverEmail: {
+        type: [String],
+        required: true
+    },
+    event_title:{
+        type: String,
+        required: true,
+    }, 
+    event_description: {
         type: String,
         required: true
-    }, 
-    reason: {
+    },
+    event_location: {
         type: String,
         required: true
-    }, 
+    },
+    event_link: {
+        type: String,
+        required: true
+    },
     status: {
         type: String,
         required: true

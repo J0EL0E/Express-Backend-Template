@@ -97,7 +97,7 @@ export const getAllEventSchedules = async (req, res) => {
 
         const senderOfEventSchedule = await eventSchedule.find({senderEmail: user_email});
         const receiverOfEventSchedule = await eventSchedule.find({receiverEmail: user_email});
-
+        console.log(receiverOfEventSchedule);
         const listOfEvents = senderOfEventSchedule.concat(receiverOfEventSchedule);
 
         if(listOfEvents.length > 0){
@@ -110,16 +110,17 @@ export const getAllEventSchedules = async (req, res) => {
                 res.status(200).json({
                 status: "success",
                 message: "No events has been scheduled.",
-                event : existingEvent[0]
+                event : listOfEvents[0]
             })    
 
         }
 
-    } catch {
+    } catch (error) {
            console.error(error);
         return res.status(500).json({
             status: "error",
-            message: "Failed to retrieve the event schedules."
+            message: "Failed to retrieve the event schedules.",
+            error: error
         })
     }
 

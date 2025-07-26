@@ -8,12 +8,8 @@ export const verifyToken = async (req, res, next) => {
 
         if(token) {
             jwt.verify(token, process.env.JWT_SECRET_KEY);
-            // console.log(decode);
+            console.log(jwt.verify(token, process.env.JWT_SECRET_KEY))
             console.log("Token is verified successfully.")
-            // return res.status(200).json({
-            //     status: "success",
-            //     message: "Token is verified successfully."
-            // })
             next();
 
         } else {
@@ -31,11 +27,5 @@ export const verifyToken = async (req, res, next) => {
             message: "Unathorized"
         })
     }
-
-
-
-
-
-
 
 }
